@@ -11,5 +11,5 @@ for user in users:
     user["email"] = f"{username_clean}@email.com"
 
 
-with open('updated_data.json', 'w', encoding='utf-8') as f:
+with open('data.json', 'w', encoding='utf-8') as f:
     json.dump(users, f, indent=2, ensure_ascii=False)

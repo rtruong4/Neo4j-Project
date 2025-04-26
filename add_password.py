@@ -9,5 +9,5 @@ for user in users:
     user["password"] = "password"
 
 
-with open('updated_data.json', 'w', encoding='utf-8') as f:
+with open('data.json', 'w', encoding='utf-8') as f:
     json.dump(users, f, indent=2, ensure_ascii=False)

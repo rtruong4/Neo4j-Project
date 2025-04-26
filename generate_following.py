@@ -1,7 +1,7 @@
 import json
 import random
 
-with open("combined_output.json", "r", encoding="utf-8") as f:
+with open("data.json", "r", encoding="utf-8") as f:
     users = json.load(f)
 
 all_ids = [user["id"] for user in users]
@@ -20,5 +20,5 @@ for user in users:
     user["following"] = following
 
 
-with open("updated_users.json", "w", encoding="utf-8") as f:
+with open("data.json", "w", encoding="utf-8") as f:
     json.dump(users, f, indent=2, ensure_ascii=False)

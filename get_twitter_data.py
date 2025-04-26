@@ -4,7 +4,7 @@ import json
 
 data_dir = "./data"
 
-output_json = "combined_output.json"
+output_json = "data.json"
 
 all_entries = []
 
