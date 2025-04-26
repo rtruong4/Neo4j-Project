@@ -10,17 +10,17 @@ def register_user():
     email = input("Enter email: ")
     password = input("Enter password: ")
     bio = input("Enter bio: ")
-    outputProfileName = input("Enter output profile name: ")
+    outputProfileName = userName.strip("@")  # Automatically generate outputProfileName
 
     with driver.session() as session:
         session.run("""
             CREATE (u:User {
-                id: toInteger(rand() * 100000), 
-                userName: $userName, 
-                fullName: $fullName, 
-                email: $email, 
-                password: $password, 
-                bio: $bio, 
+                id: toInteger(rand() * 100000),
+                userName: $userName,
+                fullName: $fullName,
+                email: $email,
+                password: $password,
+                bio: $bio,
                 outputProfileName: $outputProfileName
             })
         """, userName=userName, fullName=fullName, email=email, password=password, bio=bio, outputProfileName=outputProfileName)
@@ -81,19 +81,56 @@ def view_profile(userName):
             print("❌ Profile not found.")
 
 def edit_profile(userName):
-    newName = input("Enter new full name: ")
-    newBio = input("Enter new bio: ")
-    newEmail = input("Enter new email: ")
+    while True:
+        print("\n=== Edit Profile ===")
+        print("1. Edit Full Name")
+        print("2. Edit Bio")
+        print("3. Edit Email")
+        print("4. Edit Password")
+        print("5. Go Back")
+        choice = input("Choose an option: ")
 
-    with driver.session() as session:
-        session.run("""
-            MATCH (u:User {userName: $userName})
-            SET u.fullName = $newName,
-                u.bio = $newBio,
-                u.email = $newEmail
-        """, userName=userName, newName=newName, newBio=newBio, newEmail=newEmail)
+        if choice == "1":
+            newName = input("Enter new full name: ")
+            with driver.session() as session:
+                session.run("""
+                    MATCH (u:User {userName: $userName})
+                    SET u.fullName = $newName
+                """, userName=userName, newName=newName)
+            print("✅ Full Name updated successfully!")
 
-    print("✅ Profile updated successfully!")
+        elif choice == "2":
+            newBio = input("Enter new bio: ")
+            with driver.session() as session:
+                session.run("""
+                    MATCH (u:User {userName: $userName})
+                    SET u.bio = $newBio
+                """, userName=userName, newBio=newBio)
+            print("✅ Bio updated successfully!")
+
+        elif choice == "3":
+            newEmail = input("Enter new email: ")
+            with driver.session() as session:
+                session.run("""
+                    MATCH (u:User {userName: $userName})
+                    SET u.email = $newEmail
+                """, userName=userName, newEmail=newEmail)
+            print("✅ Email updated successfully!")
+
+        elif choice == "4":
+            newPassword = input("Enter new password: ")
+            with driver.session() as session:
+                session.run("""
+                    MATCH (u:User {userName: $userName})
+                    SET u.password = $newPassword
+                """, userName=userName, newPassword=newPassword)
+            print("✅ Password updated successfully!")
+
+        elif choice == "5":
+            break  # Go back to user dashboard
+
+        else:
+            print("Invalid choice. Please try again.")
 
 def main():
     while True:
@@ -115,4 +152,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
