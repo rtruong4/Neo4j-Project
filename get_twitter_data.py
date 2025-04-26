@@ -42,6 +42,6 @@ for subfolder in os.listdir(data_dir):
                 except json.JSONDecodeError as e:
                     print(f"Skipping {json_file}: invalid JSON - {e}")
 
-# Save to file
+
 with open(output_json, "w", encoding="utf-8") as out_file:
     json.dump(all_entries, out_file, indent=2, ensure_ascii=False)
