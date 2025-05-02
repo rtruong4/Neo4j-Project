@@ -6,16 +6,20 @@ driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "12345678"
 def register_user():
     print("=== User Registration ===")
     fullName = input("Enter full name: ")
-    userName = input("Enter username (@example): ")
+    userName = input("Enter username: ")
     email = input("Enter email: ")
     password = input("Enter password: ")
     bio = input("Enter bio: ")
     outputProfileName = userName.strip("@")  # Automatically generate outputProfileName
-
+    
     with driver.session() as session:
-        session.run("""
+        # First find the maximum ID and add 1 using COALESCE
+        result = session.run("""
+            MATCH (u:User)
+            WITH COALESCE(MAX(u.id), 0) + 1 AS next_id
+            
             CREATE (u:User {
-                id: toInteger(rand() * 100000),
+                id: next_id,
                 userName: $userName,
                 fullName: $fullName,
                 email: $email,
@@ -23,9 +27,16 @@ def register_user():
                 bio: $bio,
                 outputProfileName: $outputProfileName
             })
-        """, userName=userName, fullName=fullName, email=email, password=password, bio=bio, outputProfileName=outputProfileName)
+            RETURN u.id AS newUserId, u.userName AS newUserName
+        """, userName=userName, fullName=fullName, email=email, 
+             password=password, bio=bio, outputProfileName=outputProfileName)
+        
+        record = result.single()
+        if record:
+            print(f"✅ Registration successful! Created user with ID: {record['newUserId']}")
+        else:
+            print("⚠️ Registration may have failed")
 
-    print("✅ Registration successful!")
 
 def login_user():
     print("=== User Login ===")
@@ -50,6 +61,8 @@ def user_dashboard(userName):
         print("\n=== User Dashboard ===")
         print("1. View Profile")
         print("2. Edit Profile")
+        print("8. Find Mutual Connections")
+        print("9. Find Recommended Friends")
         print("3. Logout")
         choice = input("Choose an option: ")
 
@@ -60,9 +73,74 @@ def user_dashboard(userName):
         elif choice == "3":
             print("👋 Logged out.")
             break
+        elif choice == "8":
+            find_mutuals(userName)
+        elif choice == "9":
+            find_recommended(userName)
         else:
             print("Invalid choice.")
 
+def find_mutuals(userName):
+    while True:
+        print("\n")
+        friendName = input("Enter the username of the person you would like to find the mutuals of: ")
+        with driver.session() as session:
+            result = session.run("""MATCH (user1:User {userName: $userName})-[:FOLLOWS]->(mutual:User),
+                (user2:User {userName: $friendName})-[:FOLLOWS]->(mutual:User)
+            RETURN mutual.userName AS username
+                """, userName = userName, friendName = friendName)
+            
+            record = list(result)
+
+            if not record:
+                print("No mutual followings found")
+            else:
+                print(f"\nFound {len(record)} mutual followings between {userName} and {friendName}:")
+                print("-" * 80)
+
+                for i, user in enumerate(record, 1):
+                    print(str(i) + "." + user['username'])
+        print("-" * 80)
+        choice = input("Would you like to find mutuals with another user? (y/n): ")
+        if choice != "y":
+            break
+    
+def find_recommended(userName):
+    print(f"\nFinding friend recommendations for {userName}...")
+    
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (user:User {userName: $userName})-[:FOLLOWS]->(:User)-[:FOLLOWS]->(potentialFriend:User)
+            WHERE NOT (user)-[:FOLLOWS]->(potentialFriend) 
+              AND user <> potentialFriend
+              AND NOT potentialFriend.userName = $userName
+            WITH potentialFriend, COUNT(*) AS commonConnections
+            ORDER BY commonConnections DESC
+            RETURN potentialFriend.userName AS username,
+                   potentialFriend.fullName AS fullname,
+                   potentialFriend.id AS id,
+                   potentialFriend.bio AS bio,
+                   commonConnections
+            LIMIT 10
+            """, userName=userName)
+        
+        recommendations = list(result)
+        
+        if not recommendations:
+            print(f"No recommendations found for {userName}.")
+        else:
+            print(f"\nFound {len(recommendations)} friend recommendations for {userName}:")
+            print("-" * 80)
+            
+            for i, record in enumerate(recommendations, 1):
+                print(f"Recommendation #{i}:")
+                print(f"Username: {record['username']}")
+                print(f"Full Name: {record['fullname']}")
+                print(f"User ID: {record['id']}")
+                print(f"Bio: {record['bio']}")
+                print(f"Common Connections: {record['commonConnections']}")
+                print("-" * 80)
+                
 def view_profile(userName):
     with driver.session() as session:
         result = session.run("""
