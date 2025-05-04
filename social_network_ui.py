@@ -62,6 +62,8 @@ def user_dashboard(userName):
         print("7. View My Connections")
         print("8. Find Mutual Connections")
         print("9. Find Recommended Friends")
+        print("10. Find a User")
+        print("11. See Most Followed Users")
         choice = input("Choose an option: ")
 
         if choice == "1":
@@ -81,6 +83,10 @@ def user_dashboard(userName):
             find_mutuals(userName)
         elif choice == "9":
             find_recommended(userName)
+        elif choice == "10":
+            find_user()
+        elif choice == "11":
+            find_top_5_most_followed()
         else:
             print("Invalid choice.")
 
@@ -230,6 +236,54 @@ def find_recommended(userName):
             for i, r in enumerate(recommendations, 1):
                 print(f"{i}. @{r['username']} - {r['fullName']} (Bio: {r['bio']}) — Common Links: {r['score']}")
 
+def find_user():
+    with driver.session() as session:
+        while True:
+            user_to_find = input("Enter the username to search (or type 'exit' to quit): ")
+            if user_to_find.lower() == 'exit':
+                print("Exiting search.")
+                break
+
+            result = session.run(
+                """
+                MATCH (u:User {userName: $username})
+                RETURN u
+                """,
+                username=user_to_find
+            )
+
+            found = False
+            for record in result:
+                user = record["u"]
+                print("-" * 80)
+                print("User found")
+                print("-" * 80)
+                print(f"Username: {user["userName"]}")
+                print(f"Bio: {user["bio"]}")
+                print(f"Full Name: {user["fullName"]}")
+                print(f"email: {user["email"]}")
+                print("-" * 80)
+                found = True
+
+            if not found:
+                print("No user found with that username.")
+
+def find_top_5_most_followed():
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (follower:User)-[:FOLLOWS]->(user:User)
+            WITH user, COUNT(follower) AS followersCount
+            ORDER BY followersCount DESC
+            LIMIT 5
+            RETURN user.userName AS username, followersCount
+            """
+        )
+        print("-" * 80)
+        print("Top 5 most followed users:")
+        for record in result:
+            print(f"{record['username']} : {record['followersCount']} followers")
+        
 def main():
     while True:
         print("\n=== Welcome to the Social Network ===")
